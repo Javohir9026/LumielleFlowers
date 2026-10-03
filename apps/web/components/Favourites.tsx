@@ -1,0 +1,4 @@
+"use client";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+type Favourites={ids:string[];toggle:(id:string)=>void};const Context=createContext<Favourites|null>(null);const KEY="lumielle_favourites_v1";
+export function FavouritesProvider({children}:{children:React.ReactNode}){const[ids,setIds]=useState<string[]>([]);useEffect(()=>{try{setIds(JSON.parse(localStorage.getItem(KEY)??"[]"))}catch{}},[]);const toggle=(id:string)=>setIds(current=>{const next=current.includes(id)?current.filter(x=>x!==id):[...current,id];try{localStorage.setItem(KEY,JSON.stringify(next))}catch{}return next});const value=useMemo(()=>({ids,toggle}),[ids]);return <Context.Provider value={value}>{children}</Context.Provider>};export const useFavourites=()=>{const value=useContext(Context);if(!value)throw new Error("FavouritesProvider kerak");return value};

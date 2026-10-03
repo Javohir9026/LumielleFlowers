@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  new
+  confirmed
+  delivering
+  delivered
+  cancelled
+}
+
+model Customer {
+  id String @id @default(uuid())
+  phone String @unique
+  name String?
+  createdAt DateTime @default(now())
+  orders Order[]
+  otpCodes OtpCode[]
+}
+model Admin {
+  id String @id @default(uuid())
+  login String @unique
+  passwordHash String
+  createdAt DateTime @default(now())
+}
+model Category {
+  id String @id @default(uuid())
+  name String @unique
+  slug String @unique
+  products Product[]
+  createdAt DateTime @default(now())
+}
+model Product {
+  id String @id @default(uuid())
+  slug String @unique
+  titleUz String
+  titleRu String?
+  titleEn String?
+  descriptionUz String?
+  descriptionRu String?
+  descriptionEn String?
+  price Int
+  discountPrice Int?
+  isActive Boolean @default(false)
+  categoryId String?
+  category Category? @relation(fields: [categoryId], references: [id])
+  images ProductImage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orderItems OrderItem[]
+}
+model ProductImage {
+  id String @id @default(uuid())
+  productId String
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sortOrder Int @default(0)
+  originalPath String
+  smPath String
+  mdPath String
+  lgPath String
+  createdAt DateTime @default(now())
+  @@index([productId, sortOrder])
+}
+model Order {
+  id String @id @default(uuid())
+  number Int @unique @default(autoincrement())
+  customerId String
+  customer Customer @relation(fields: [customerId], references: [id])
+  customerName String
+  customerPhone String
+  recipientPhone String
+  address String
+  latitude Float?
+  longitude Float?
+  note String?
+  status OrderStatus @default(new)
+  total Int
+  idempotencyKey String @unique
+  items OrderItem[]
+  history OrderStatusHistory[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([customerId, createdAt])
+  @@index([status, createdAt])
+}
+model OrderItem {
+  id String @id @default(uuid())
+  orderId String
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productTitle String
+  unitPrice Int
+  quantity Int
+  lineTotal Int
+}
+model OrderStatusHistory {
+  id String @id @default(uuid())
+  orderId String
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status OrderStatus
+  note String?
+  createdAt DateTime @default(now())
+}
+model OtpCode {
+  id String @id @default(uuid())
+  customerId String
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  codeHash String
+  expiresAt DateTime
+  attempts Int @default(0)
+  createdAt DateTime @default(now())
+}

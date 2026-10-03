@@ -1,0 +1,42 @@
+export const openApi = {
+  openapi: "3.0.3",
+  info: {
+    title: "Lumielle Flowers API",
+    version: "1.0.0",
+    description: "Lumielle Flowers web va admin paneli uchun REST API.",
+  },
+  servers: [{ url: "http://localhost:4000", description: "Local development" }],
+  tags: [
+    { name: "Public", description: "Ochiq katalog ma’lumotlari" },
+    { name: "Auth", description: "Mijoz OTP autentifikatsiyasi" },
+    { name: "Orders", description: "Mijoz buyurtmalari" },
+    { name: "Admin", description: "Admin panel API lari" },
+  ],
+  components: {
+    securitySchemes: { customerCookie: { type: "apiKey", in: "cookie", name: "lumielle_customer" }, adminCookie: { type: "apiKey", in: "cookie", name: "lumielle_admin" } },
+    schemas: {
+      Success: { type: "object", properties: { data: {} } },
+      Error: { type: "object", properties: { error: { type: "object", properties: { code: { type: "string" }, message: { type: "string" }, details: {} } } } },
+      OtpPhone: { type: "object", required: ["phone"], properties: { phone: { type: "string", example: "+998901234567" } } },
+      VerifyOtp: { type: "object", required: ["phone", "code"], properties: { phone: { type: "string", example: "+998901234567" }, code: { type: "string", example: "123456" } } },
+      Checkout: { type: "object", required: ["customerName", "recipientPhone", "address", "items"], properties: { customerName: { type: "string", example: "Javohir" }, recipientPhone: { type: "string", example: "+998901234567" }, address: { type: "string", example: "Toshkent shahri, ..." }, note: { type: "string", nullable: true }, items: { type: "array", items: { type: "object", required: ["productId", "quantity"], properties: { productId: { type: "string", format: "uuid" }, quantity: { type: "integer", minimum: 1, example: 1 } } } } } },
+    },
+  },
+  paths: {
+    "/api/health": { get: { tags: ["Public"], summary: "API holatini tekshirish", responses: { "200": { description: "Server ishlayapti" } } } },
+    "/api/categories": { get: { tags: ["Public"], summary: "Kategoriyalar", responses: { "200": { description: "Kategoriyalar ro‘yxati" } } } },
+    "/api/products": { get: { tags: ["Public"], summary: "Mahsulotlar ro‘yxati", parameters: [{ name: "page", in: "query", schema: { type: "integer" } }, { name: "limit", in: "query", schema: { type: "integer", maximum: 48 } }, { name: "lang", in: "query", schema: { type: "string", enum: ["uz", "ru", "en"] } }, { name: "category", in: "query", schema: { type: "string" } }, { name: "sale", in: "query", schema: { type: "boolean" } }, { name: "search", in: "query", schema: { type: "string" } }], responses: { "200": { description: "Mahsulotlar" } } } },
+    "/api/products/{slug}": { get: { tags: ["Public"], summary: "Bitta mahsulot", parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }, { name: "lang", in: "query", schema: { type: "string", enum: ["uz", "ru", "en"] } }], responses: { "200": { description: "Mahsulot" }, "404": { description: "Topilmadi", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } } } } },
+    "/api/auth/request-otp": { post: { tags: ["Auth"], summary: "OTP kod yuborish", requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/OtpPhone" } } } }, responses: { "200": { description: "Kod yuborildi" }, "400": { description: "Telefon noto‘g‘ri" }, "429": { description: "So‘rov limiti" } } } },
+    "/api/auth/verify-otp": { post: { tags: ["Auth"], summary: "OTP kodni tasdiqlash", requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/VerifyOtp" } } } }, responses: { "200": { description: "Session cookie o‘rnatiladi" }, "400": { description: "Kod noto‘g‘ri yoki eskirgan" } } } },
+    "/api/auth/logout": { post: { tags: ["Auth"], summary: "Mijoz sessionidan chiqish", responses: { "200": { description: "Session o‘chirildi" } } } },
+    "/api/me": { get: { tags: ["Auth"], summary: "Joriy mijoz profili", security: [{ customerCookie: [] }], responses: { "200": { description: "Profil" }, "401": { description: "Kirish talab qilinadi" } } }, patch: { tags: ["Auth"], summary: "Profil ism-familiyasini yangilash", security: [{ customerCookie: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["name"], properties: { name: { type: "string", example: "Javohir Karimov", maxLength: 120 } } } } } }, responses: { "200": { description: "Profil yangilandi" }, "400": { description: "Validatsiya xatosi" } } } },
+    "/api/orders": { get: { tags: ["Orders"], summary: "Mening buyurtmalarim", security: [{ customerCookie: [] }], responses: { "200": { description: "Buyurtmalar" } } }, post: { tags: ["Orders"], summary: "Buyurtma yaratish", security: [{ customerCookie: [] }], parameters: [{ name: "Idempotency-Key", in: "header", required: true, schema: { type: "string", format: "uuid" } }], requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/Checkout" } } } }, responses: { "201": { description: "Buyurtma yaratildi" }, "401": { description: "Kirish talab qilinadi" }, "409": { description: "Mahsulot mavjud emas" } } } },
+    "/api/orders/{id}": { get: { tags: ["Orders"], summary: "Bitta buyurtma", security: [{ customerCookie: [] }], parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }], responses: { "200": { description: "Buyurtma" }, "404": { description: "Topilmadi" } } } },
+    "/api/admin/auth/login": { post: { tags: ["Admin"], summary: "Admin login", requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["login", "password"], properties: { login: { type: "string" }, password: { type: "string", format: "password" } } } } } }, responses: { "200": { description: "Admin session cookie o‘rnatiladi" }, "401": { description: "Login yoki parol noto‘g‘ri" } } } },
+    "/api/admin/dashboard": { get: { tags: ["Admin"], summary: "Admin dashboard", security: [{ adminCookie: [] }], responses: { "200": { description: "Dashboard statistikasi" } } } },
+    "/api/admin/products": { get: { tags: ["Admin"], summary: "Admin mahsulotlari", security: [{ adminCookie: [] }], responses: { "200": { description: "Mahsulotlar" } } }, post: { tags: ["Admin"], summary: "Mahsulot yaratish", security: [{ adminCookie: [] }], responses: { "201": { description: "Mahsulot yaratildi" } } } },
+    "/api/admin/orders": { get: { tags: ["Admin"], summary: "Admin buyurtmalari", security: [{ adminCookie: [] }], responses: { "200": { description: "Buyurtmalar" } } } },
+    "/api/admin/customers": { get: { tags: ["Admin"], summary: "Mijozlar", security: [{ adminCookie: [] }], responses: { "200": { description: "Mijozlar" } } } },
+  },
+} as const;
