@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 import { FaBagShopping, FaHeart, FaLocationDot, FaUser } from "react-icons/fa6";
 import { useCart } from "./Cart";
 import { useFavourites } from "./Favourites";
+import { Toast } from "./Toast";
 import { getJson } from "../lib/api";
 
 const languages = [
   { code: "uz", label: "O'zbekcha", flag: "/flags/uz.svg" },
   { code: "ru", label: "Rus tili", flag: "/flags/ru.svg" },
-  { code: "en", label: "Inglizcha", flag: "/flags/en.svg" },
 ];
 
 export function Header() {
@@ -24,7 +24,8 @@ export function Header() {
   const router = useRouter();
 
   useEffect(() => {
-    setLanguage(localStorage.getItem("lumielle_language") ?? "uz");
+    const savedLanguage = localStorage.getItem("lumielle_language");
+    setLanguage(savedLanguage === "ru" ? "ru" : "uz");
     const close = (event: MouseEvent) => {
       if (!menu.current?.contains(event.target as Node)) setOpen(false);
     };
@@ -36,7 +37,8 @@ export function Header() {
   const choose = (code: string) => {
     setLanguage(code);
     localStorage.setItem("lumielle_language", code);
-    setOpen(false);
+    document.cookie = `lumielle_language=${code}; path=/; max-age=31536000; samesite=lax`;
+    window.location.reload();
   };
   const total = items.reduce((sum, item) => sum + item.quantity, 0);
   const openAccount = async () => {
@@ -52,13 +54,12 @@ export function Header() {
     }
   };
 
-  return <header className="site-header">
+  return <><header className="site-header">
     <div className="utility"><div className="container utility-inner"><span><FaLocationDot /> Toshkent · Yetkazish bepul</span><div><Link href="/orders">Buyurtmalarim</Link></div></div></div>
     <nav className="container nav">
       <Link href="/" className="brand">LUMI<em>ELLE</em><small>FLOWERS</small></Link>
       <div className="nav-links"><Link href="/catalog">Katalog</Link><Link href="/catalog?sale=true">Aksiyalar</Link><Link href="/contacts">Aloqa</Link></div>
       <div className="nav-actions">
-        <button className="account-trigger" type="button" onClick={openAccount} aria-label="Profil"><FaUser /></button>
         <div className="language" ref={menu}>
           <button className="language-current" onClick={() => setOpen(!open)} aria-expanded={open} aria-label="Tilni tanlash">
             <img className="language-flag" src={selected.flag} alt="" />
@@ -69,7 +70,8 @@ export function Header() {
         </div>
         <Link href="/favourites" aria-label="Sevimlilar" className="bag"><FaHeart />{ids.length > 0 && <span className="count">{ids.length}</span>}</Link>
         <Link href="/cart" aria-label="Savat" className="bag"><FaBagShopping />{total > 0 && <span className="count">{total}</span>}</Link>
+        <button className="account-trigger" type="button" onClick={openAccount} aria-label="Profil"><FaUser /></button>
       </div>
     </nav>
-  </header>;
+  </header><Toast /></>;
 }

@@ -1,0 +1,22 @@
+"use client";
+
+import { Suspense, useEffect } from "react";
+import { NavigationProgress } from "./NavigationProgress";
+
+const ru: Record<string, string> = {
+  "Toshkent · Yetkazish bepul": "Ташкент · Бесплатная доставка", "Buyurtmalarim": "Мои заказы", "Katalog": "Каталог", "Aksiyalar": "Акции", "Aloqa": "Контакты", "Profil": "Профиль", "Tilni tanlash": "Выбрать язык", "Sevimlilar": "Избранное", "Savat": "Корзина",
+  "Barcha guldastalar": "Все букеты", "Aksiya": "Акции", "Guldastalar": "Букеты", "Aksiyadagi guldastalar": "Букеты по акции", "Barchasini ko‘rish →": "Смотреть все →", "Mahsulotlar tez orada qo‘shiladi.": "Товары скоро появятся.",
+  "Lumielle katalogi": "Каталог Lumielle", "Gullar": "Цветы", "Gul qidirish": "Поиск цветов", "Narx": "Цена", "Dan": "От", "Gacha": "До", "Qo‘llash": "Применить", "Faqat aksiya": "Только акции", "Oxirgi qo‘shilgan": "Последние добавленные", "Nomi (A – Z)": "Название (А – Я)", "Nomi (Z – A)": "Название (Я – А)", "Avval arzonlari": "Сначала дешёвые", "Avval qimmatlari": "Сначала дорогие", "Hech narsa topilmadi.": "Ничего не найдено.",
+  "Savatga": "В корзину", "Savatga qo‘shish": "Добавить в корзину", "AKSIYA": "АКЦИЯ", "Sevimlilarga qo‘shish": "Добавить в избранное", "Kamaytirish": "Уменьшить", "Ko‘paytirish": "Увеличить", "Mahsulot topilmadi yoki yuklanmoqda.": "Товар не найден или загружается.", "Katalogga qaytish": "Вернуться в каталог", "Tavsif": "Описание",
+  "Kirish": "Войти", "Kodni tasdiqlang": "Подтвердите код", "Telefon raqam": "Номер телефона", "Tasdiqlash kodi": "Код подтверждения", "Kod yuborish": "Отправить код", "Kodni tasdiqlash": "Подтвердить код", "Raqamni o‘zgartirish": "Изменить номер", "Yopish": "Закрыть", "Kutilmoqda…": "Ожидание…", "6 xonali kod": "6-значный код",
+  "Ism familiya": "Имя и фамилия", "Buyurtmachi telefoni": "Телефон заказчика", "Qabul qiluvchi telefoni": "Телефон получателя", "Yetkazish manzili": "Адрес доставки", "Google Maps orqali tanlash": "Выбрать через Google Maps", "Izoh (ixtiyoriy)": "Комментарий (необязательно)", "Tasdiqlash": "Подтвердить", "Buyurtma xulosasi": "Состав заказа", "Tanlangan mahsulotlar": "Выбранные товары", "Buyurtma berish": "Оформить заказ", "Yetkazish: Bepul": "Доставка: бесплатно", "To‘lov: Naqd, yetkazilganda": "Оплата: наличными при доставке",
+  "Mening profilim": "Мой профиль", "Buyurtmalar tarixi": "История заказов", "Chiqish": "Выйти", "Bekor qilish": "Отмена", "Saqlash": "Сохранить", "Saqlanmoqda…": "Сохранение…", "Ism familiyangiz": "Ваше имя и фамилия", "Telefon raqami o‘zgartirilmaydi.": "Номер телефона нельзя изменить.",
+  "BIZ BILAN ALOQA": "СВЯЗЬ С НАМИ", "Kontaktlar": "Контакты", "Har doim bog‘lanish mumkin": "Мы всегда на связи", "Ish vaqti": "Время работы", "Buyurtmalar 24/7 qabul qilinadi.": "Заказы принимаются круглосуточно, 24/7.", "Biz haqimizda": "О нас", "Yetkazib berish": "Доставка", "Maxfiylik": "Конфиденциальность", "Ommaviy oferta": "Публичная оферта", "Ma’lumot": "Информация", "Kompaniya": "Компания", "To‘lov": "Оплата", "Naqd pul": "Наличные", "Bank o‘tkazmasi": "Банковский перевод", "Ilovani yuklab oling": "Скачайте приложение", "tez orada": "скоро"
+};
+const normalize = (value: string) => value.replace(/â€˜/g, "‘").replace(/â€™/g, "’").replace(/â€¦/g, "…").replace(/â†’/g, "→");
+function translateNode(node: Node) { if (node.nodeType === Node.TEXT_NODE) { const original = node.nodeValue ?? ""; const leading = original.match(/^\s*/)?.[0] ?? ""; const trailing = original.match(/\s*$/)?.[0] ?? ""; const value = normalize(original.trim()); if (ru[value]) node.nodeValue = `${leading}${ru[value]}${trailing}`; return; } if (!(node instanceof Element)) return; ["placeholder", "aria-label", "title"].forEach(attribute => { const value = node.getAttribute(attribute); if (value && ru[normalize(value)]) node.setAttribute(attribute, ru[normalize(value)]); }); node.childNodes.forEach(translateNode); }
+
+export function RuntimeTranslation({ children }: { children: React.ReactNode }) {
+  useEffect(() => { if (localStorage.getItem("lumielle_language") !== "ru") return; document.documentElement.lang = "ru"; translateNode(document.body); const observer = new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(translateNode))); observer.observe(document.body, { childList: true, subtree: true }); return () => observer.disconnect(); }, []);
+  return <><Suspense fallback={null}><NavigationProgress /></Suspense>{children}</>;
+}

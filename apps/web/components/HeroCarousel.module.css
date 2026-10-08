@@ -1,0 +1,65 @@
+.carousel {
+  height: clamp(220px, 25vw, 360px);
+  overflow: hidden;
+  position: relative;
+}
+
+.slide {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  opacity: 1;
+  position: absolute;
+  transition: opacity 450ms ease-in-out;
+  width: 100%;
+}
+
+.incoming {
+  animation: fade-in 450ms ease-in-out;
+  z-index: 2;
+}
+
+.outgoing {
+  z-index: 1;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide {
+    transition: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .carousel {
+    border-radius: 10px;
+    height: 94px;
+    margin: 18px 12px 0;
+  }
+
+  .slide {
+    opacity: 1;
+  }
+
+  .incoming {
+    animation: slide-in 500ms ease-in-out;
+  }
+
+  .outgoing {
+    animation: slide-out 500ms ease-in-out forwards;
+  }
+}
+
+@keyframes slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slide-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}

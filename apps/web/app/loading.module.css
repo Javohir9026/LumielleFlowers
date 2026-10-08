@@ -1,0 +1,22 @@
+.bar {
+  animation: loading-bar 1.8s cubic-bezier(.4,0,.2,1) infinite;
+  background: #B31343;
+  box-shadow: 0 2px 8px rgba(179, 19, 67, .38);
+  height: 5px;
+  left: 0;
+  position: fixed;
+  top: 0;
+  transform-origin: left;
+  width: 38%;
+  z-index: 100;
+}
+
+@keyframes loading-bar {
+  0% { transform: translateX(-120%) scaleX(.55); }
+  55% { transform: translateX(135%) scaleX(1); }
+  100% { transform: translateX(310%) scaleX(.55); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar { animation: none; width: 100%; }
+}

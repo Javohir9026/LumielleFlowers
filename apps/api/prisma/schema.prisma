@@ -41,10 +41,8 @@ model Product {
   slug String @unique
   titleUz String
   titleRu String?
-  titleEn String?
   descriptionUz String?
   descriptionRu String?
-  descriptionEn String?
   price Int
   discountPrice Int?
   isActive Boolean @default(false)

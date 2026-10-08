@@ -1,1 +1,19 @@
-"use client";import{useEffect,useState}from"react";import{useParams,useSearchParams}from"next/navigation";import{getJson}from"../../../lib/api";import{formatPrice}from"@lumielle/shared";export default function Order(){const{id}=useParams<{id:string}>(),[o,setO]=useState<any>(null),success=useSearchParams().get("success");useEffect(()=>{getJson(`/orders/${id}`).then(setO)},[id]);if(!o)return <main className="container section">Yuklanmoqda…</main>;return <main className="container section"><h1>Buyurtma #{o.number}</h1>{success&&<div className="notice">Buyurtmangiz qabul qilindi. Tez orada siz bilan bog‘lanamiz.</div>}<p>Holat: <strong>{o.status}</strong></p>{o.items.map((x:any)=><p key={x.id}>{x.productTitle} × {x.quantity} — {formatPrice(x.lineTotal)}</p>)}<h2>{formatPrice(o.total)}</h2><p>{o.address}</p></main>}
+"use client";
+
+import { Suspense, useEffect, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { getJson } from "../../../lib/api";
+import { formatPrice } from "@lumielle/shared";
+
+function OrderContent() {
+  const { id } = useParams<{ id: string }>();
+  const [order, setOrder] = useState<any>(null);
+  const success = useSearchParams().get("success");
+  useEffect(() => { getJson(`/orders/${id}`).then(setOrder); }, [id]);
+  if (!order) return <main className="container section">Yuklanmoqda…</main>;
+  return <main className="container section"><h1>Buyurtma #{order.number}</h1>{success && <div className="notice">Buyurtmangiz qabul qilindi. Tez orada siz bilan bog‘lanamiz.</div>}<p>Holat: <strong>{order.status}</strong></p>{order.items.map((item: any) => <p key={item.id}>{item.productTitle} × {item.quantity} — {formatPrice(item.lineTotal)}</p>)}<h2>{formatPrice(order.total)}</h2><p>{order.address}</p></main>;
+}
+
+export default function Order() {
+  return <Suspense fallback={<main className="container section">Yuklanmoqda…</main>}><OrderContent /></Suspense>;
+}
