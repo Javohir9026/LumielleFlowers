@@ -19,9 +19,11 @@ import { clearAuthCookie, requireAuth, setAuthCookie, type AuthedRequest } from 
 import { fail, ok } from "./lib/http.js";
 import { localizedProduct, slugify } from "./lib/product.js";
 import { notifyNewOrder } from "./lib/telegram.js";
+import { sendTelegramGatewayCode, verifyTelegramGatewayCode } from "./lib/telegramGateway.js";
 import { openApi } from "./openapi.js";
 
 const app = express();
+app.set("trust proxy", 1);
 const uploadRoot = path.resolve(process.env.UPLOADS_DIR ?? "./uploads");
 const allowedOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:3000,http://localhost:5174").split(",");
 app.use(helmet({ crossOriginResourcePolicy: false }));
@@ -44,8 +46,12 @@ const cachePublicData = (res: Response) => res.set({
   "Vary": "Accept-Language"
 });
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 6 }, fileFilter: (_r, file, cb) => cb(null, ["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) });
+const gatewayOtp = express.Router();
+gatewayOtp.post("/request-otp", rateLimit({ windowMs: 60_000, limit: 3 }), async (req, res, next) => { try { if (!process.env.TELEGRAM_GATEWAY_TOKEN) { if (process.env.NODE_ENV === "production") return fail(res, 503, "OTP_UNAVAILABLE", "Telegram orqali kod yuborish sozlanmagan"); return next(); } const parsed = phoneSchema.safeParse(req.body.phone); if (!parsed.success) return fail(res, 400, "VALIDATION_ERROR", "Telefon noto'g'ri", { phone: "+998XXXXXXXXX kiriting" }); const customer = await prisma.customer.upsert({ where: { phone: parsed.data }, update: {}, create: { phone: parsed.data } }); const recent = await prisma.otpCode.findFirst({ where: { customerId: customer.id, createdAt: { gt: new Date(Date.now() - 60_000) } }, orderBy: { createdAt: "desc" } }); if (recent) return fail(res, 429, "OTP_COOLDOWN", "Kod yaqinda yuborilgan"); const gatewayRequestId = await sendTelegramGatewayCode(parsed.data); await prisma.otpCode.create({ data: { customerId: customer.id, codeHash: "telegram-gateway", gatewayRequestId, expiresAt: new Date(Date.now() + 5 * 60_000) } }); ok(res, { sent: true, delivery: "telegram" }); } catch (e) { next(e); } });
+gatewayOtp.post("/verify-otp", rateLimit({ windowMs: 60_000, limit: 10 }), async (req, res, next) => { try { if (!process.env.TELEGRAM_GATEWAY_TOKEN) { if (process.env.NODE_ENV === "production") return fail(res, 503, "OTP_UNAVAILABLE", "Telegram orqali kod yuborish sozlanmagan"); return next(); } const phone = phoneSchema.safeParse(req.body.phone); const code = String(req.body.code ?? ""); if (!phone.success || !/^\d{6}$/.test(code)) return fail(res, 400, "VALIDATION_ERROR", "Kod yoki telefon noto'g'ri"); const customer = await prisma.customer.findUnique({ where: { phone: phone.data } }); const otp = customer && await prisma.otpCode.findFirst({ where: { customerId: customer.id }, orderBy: { createdAt: "desc" } }); if (!customer || !otp || !otp.gatewayRequestId || otp.expiresAt < new Date()) return fail(res, 400, "OTP_EXPIRED", "Kodning muddati tugagan"); if (otp.attempts >= 5) return fail(res, 429, "OTP_TOO_MANY_ATTEMPTS", "Urinishlar limiti tugadi"); const status = await verifyTelegramGatewayCode(otp.gatewayRequestId, code); if (status !== "code_valid") { if (status === "expired" || status === "code_max_attempts_exceeded") await prisma.otpCode.delete({ where: { id: otp.id } }); else await prisma.otpCode.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } }); return fail(res, status === "expired" ? 400 : 401, status === "expired" ? "OTP_EXPIRED" : "OTP_INVALID", status === "expired" ? "Kodning muddati tugagan" : "Kod noto'g'ri"); } await prisma.otpCode.delete({ where: { id: otp.id } }); setAuthCookie(res, customer.id, "customer"); ok(res, { id: customer.id, phone: customer.phone, name: customer.name }); } catch (e) { next(e); } });
+app.use("/api/auth", gatewayOtp);
 
-app.get("/api/health", (_req, res) => ok(res, { status: "ok" }));
+app.get("/api/health", async (_req, res, next) => { try { await prisma.$queryRaw`SELECT 1`; ok(res, { status: "ok", database: "ok" }); } catch (error) { next(error); } });
 app.get("/api/products", async (req, res, next) => { try {
   const lang = language(req), { page, limit } = pageParams(req);
   const isActive = true;

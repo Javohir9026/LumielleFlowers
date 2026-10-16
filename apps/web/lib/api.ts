@@ -1,5 +1,5 @@
-const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-export const asset = (url?: string) => url ? `${process.env.NEXT_PUBLIC_UPLOADS_URL ?? "http://localhost:4000"}${url}` : "";
+const api = typeof window === "undefined" ? (process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api") : (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api");
+export const asset = (url?: string) => url ? `${typeof window === "undefined" ? (process.env.INTERNAL_UPLOADS_URL ?? process.env.NEXT_PUBLIC_UPLOADS_URL ?? "http://localhost:4000") : (process.env.NEXT_PUBLIC_UPLOADS_URL ?? "http://localhost:4000")}${url}` : "";
 const selectedLanguage = () => typeof window === "undefined" ? "uz" : localStorage.getItem("lumielle_language") === "ru" ? "ru" : "uz";
 export async function getJson<T>(path: string, options?: RequestInit): Promise<T> { const response = await fetch(`${api}${path}`, { ...options, credentials: "include", headers: { "Accept-Language": selectedLanguage(), "Content-Type": "application/json", ...options?.headers }, cache: options?.cache ?? "default" }); const json = await response.json(); if (!response.ok) throw Object.assign(new Error(json.error?.message ?? "Xatolik"), { payload: json.error, status: response.status }); return json.data; }
 export type Product = { id:string;slug:string;title:string;description?:string|null;titleUz:string;price:number;discountPrice?:number|null;isActive:boolean;images:{smPath:string;mdPath:string;lgPath:string}[] };

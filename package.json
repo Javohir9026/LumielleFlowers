@@ -3,8 +3,8 @@
   "private": true,
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "concurrently -n api,web,admin -c blue,magenta,cyan \"npm run dev -w @lumielle/api\" \"npm run dev -w @lumielle/web\" \"npm run dev -w @lumielle/admin\"",
-    "build": "npm run build --workspaces --if-present",
+    "dev": "npm run build -w @lumielle/shared && concurrently -n api,web,admin -c blue,magenta,cyan \"npm run dev -w @lumielle/api\" \"npm run dev -w @lumielle/web\" \"npm run dev -w @lumielle/admin\"",
+    "build": "npm run build -w @lumielle/shared && npm run build -w @lumielle/api && npm run build -w @lumielle/web && npm run build -w @lumielle/admin",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "db:up": "docker compose up -d db",
@@ -12,7 +12,8 @@
     "db:push": "npm exec prisma db push --workspace=@lumielle/api",
     "db:migrate": "npm run prisma:migrate -w @lumielle/api",
     "db:seed": "npm run prisma:seed -w @lumielle/api",
-    "seed:admin": "npm run seed:admin -w @lumielle/api"
+    "seed:admin": "npm run seed:admin -w @lumielle/api",
+    "db:deploy": "npm run prisma:deploy -w @lumielle/api"
   },
   "devDependencies": {"concurrently": "^9.1.2"}
 }
