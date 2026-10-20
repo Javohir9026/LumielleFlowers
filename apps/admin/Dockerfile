@@ -15,3 +15,4 @@ RUN npm run build -w @lumielle/shared && npm run build -w @lumielle/admin
 
 FROM nginx:1.27-alpine
 COPY --from=build /app/apps/admin/dist /usr/share/nginx/html
+COPY apps/admin/nginx.conf /etc/nginx/conf.d/default.conf
